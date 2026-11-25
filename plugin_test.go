@@ -1408,7 +1408,7 @@ func TestAPluginTellsWSOfItsThings(t *testing.T) {
 	}
 	when := time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC)
 
-	one := plugin.Thing{Name: "RAM-1", Changed: when, Fields: map[string]string{"title": "One", "status": "Open", "body": "The first.", "colour": "not one of its fields"}}
+	one := plugin.Thing{Name: "RAM-1", Changed: when, Standing: protocol.StandingSettled, Since: when.Add(-time.Hour), Fields: map[string]string{"title": "One", "status": "Done", "body": "The first.", "colour": "not one of its fields"}}
 	if err := issue.Mirror(ctx, []plugin.Thing{one, titled("RAM-2", "Two")}); err != nil {
 		t.Fatal(err)
 	}
@@ -1416,7 +1416,7 @@ func TestAPluginTellsWSOfItsThings(t *testing.T) {
 		t.Errorf("mirrored: %s", got)
 	}
 	// As ws has it: what its kind has no field for isn't kept.
-	if th := ws.Things("issue")[0]; th.Kind != "issue" || !th.Changed.Equal(when) || fmt.Sprint(th.Fields) != fmt.Sprint(map[string]string{"title": "One", "status": "Open", "body": "The first."}) {
+	if th := ws.Things("issue")[0]; th.Kind != "issue" || !th.Changed.Equal(when) || th.Standing != protocol.StandingSettled || !th.Since.Equal(when.Add(-time.Hour)) || fmt.Sprint(th.Fields) != fmt.Sprint(map[string]string{"title": "One", "status": "Done", "body": "The first."}) {
 		t.Errorf("RAM-1 as ws has it: %+v", th)
 	}
 	// All of them again: what's changed is put in place, and what's gone

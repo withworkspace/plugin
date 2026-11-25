@@ -51,6 +51,15 @@ type Thing struct {
 	Name string
 	// Changed is when it last changed, if that's known.
 	Changed time.Time
+	// Standing is where it stands, in words every kind shares: one of
+	// protocol's Standings (protocol.StandingSettled for an issue that's
+	// done, protocol.StandingGone for one closed as won't do). What's found
+	// of a thing that's settled, or no longer so, is found below what's
+	// still so, the more so the longer since. None is open.
+	Standing string
+	// Since is when it came to stand so, for one that's settled or gone (an
+	// issue's resolution date). None is from when it last changed.
+	Since time.Time
 	// Fields are its values, by its kind's fields' names (Fields). Each
 	// is a string: a time is RFC 3339 (Stamp). One with nothing for its
 	// kind's title isn't a thing ws keeps.
@@ -631,7 +640,7 @@ func (r *Ref) Put(ctx context.Context, things ...Thing) error {
 			if fields == nil {
 				fields = map[string]string{}
 			}
-			in.Things = append(in.Things, protocol.Thing{Kind: r.ref.Kind, Ref: t.Name, Changed: t.Changed, Fields: fields})
+			in.Things = append(in.Things, protocol.Thing{Kind: r.ref.Kind, Ref: t.Name, Changed: t.Changed, Standing: t.Standing, Since: t.Since, Fields: fields})
 		}
 		var out protocol.ThingPutResult
 		if err := r.p.ask(ctx, protocol.MethodThingPut, in, &out); err != nil {

@@ -22,6 +22,7 @@ export { Call, Command, ExitError } from "./command.ts";
 export { FormatJSON, FormatLLM, FormatTable, type Format } from "./output.ts";
 export { Act, Action, choices, type Choice } from "./action.ts";
 export { Ref, RefusedError, type Asked, type Thing } from "./ref.ts";
+export { StandingGone, StandingLasting, StandingOpen, StandingPassing, StandingSettled, type Standing } from "./protocol.gen.ts";
 export { StatusError, type RawHandler, type Request } from "./view.ts";
 export { NotFoundError, UnsupportedError } from "./host.ts";
 export { stamp } from "./fields.ts";
