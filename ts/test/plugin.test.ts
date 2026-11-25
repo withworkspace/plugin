@@ -8,7 +8,7 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { request } from "node:http";
-import { Conn, NotFoundError, Plugin, blocks, fields, RPCError } from "../src/index.ts";
+import { Conn, NotFoundError, Plugin, StandingSettled, blocks, fields, RPCError } from "../src/index.ts";
 import type { InitializeParams, NotificationsToPlugin, NotificationsToWS, RequestsToPlugin, RequestsToWS } from "../src/protocol.gen.ts";
 
 type FromWS = { requests: RequestsToPlugin; notifications: NotificationsToPlugin };
@@ -183,7 +183,7 @@ test("things are put to ws, and what it refused is said", async () => {
   const p = new Plugin();
   const visit = p.ref("visit", "Visit").prefix("VISIT-").fields(fields.title("title"));
   p.command("tell", "", async () => {
-    await visit.put([{ name: "VISIT-1", changed: new Date("2026-11-21T09:00:00Z"), fields: { title: "One" } }, { name: "VISIT-0", fields: {} }]);
+    await visit.put([{ name: "VISIT-1", changed: new Date("2026-11-21T09:00:00Z"), standing: StandingSettled, since: new Date("2026-11-21T08:00:00Z"), fields: { title: "One" } }, { name: "VISIT-0", fields: {} }]);
   });
   const c = await connect(p, (method, params) => {
     if (method === "thing/put") {
@@ -196,7 +196,7 @@ test("things are put to ws, and what it refused is said", async () => {
   assert.deepEqual(await c.ws.call("command/run", run(["tell"], "t")), { exit: 1 });
   assert.equal(c.output("t"), "ws didn't keep VISIT-0: it isn't one of the kind's names\n");
   const put = c.told.find((t) => t.method === "thing/put")!.params;
-  assert.deepEqual(put, { things: [{ kind: "visit", ref: "VISIT-1", fields: { title: "One" }, changed: "2026-11-21T09:00:00Z" }, { kind: "visit", ref: "VISIT-0", fields: {} }] });
+  assert.deepEqual(put, { things: [{ kind: "visit", ref: "VISIT-1", fields: { title: "One" }, changed: "2026-11-21T09:00:00Z", standing: "settled", since: "2026-11-21T08:00:00Z" }, { kind: "visit", ref: "VISIT-0", fields: {} }] });
   c.close();
 });
 

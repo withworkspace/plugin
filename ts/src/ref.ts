@@ -4,7 +4,7 @@
 // tells ws of its things (put), ws keeps, so they're found and drawn
 // without asking it.
 
-import type { Block, Field, Ref as RefSpec, Searched, ThingRefused } from "./protocol.gen.ts";
+import type { Block, Field, Ref as RefSpec, Searched, Standing, ThingRefused } from "./protocol.gen.ts";
 import { ThingsAtOnce, ViewCard, ViewPane } from "./protocol.gen.ts";
 import type { Act } from "./action.ts";
 import type { Host } from "./host.ts";
@@ -14,6 +14,15 @@ import { stamp } from "./fields.ts";
 export interface Thing {
   name: string;
   changed?: Date;
+  /**
+   * Where it stands, in words every kind shares: "settled" for an issue
+   * that's done, "gone" for one closed as won't do (StandingSettled,
+   * StandingGone). What's found of one that's settled, or no longer so, is
+   * found below what's still so, the more so the longer since. None is open.
+   */
+  standing?: Standing;
+  /** When it came to stand so, for one that's settled or gone (an issue's resolution date). None is from when it last changed. */
+  since?: Date;
   fields: Record<string, string>;
 }
 
@@ -114,8 +123,10 @@ export class Ref {
     const refused: ThingRefused[] = [];
     for (let i = 0; i < things.length; i += ThingsAtOnce) {
       const batch = things.slice(i, i + ThingsAtOnce).map((t) => {
-        const wire: { kind: string; ref: string; fields: Record<string, string>; changed?: string } = { kind: this.spec.kind, ref: t.name, fields: t.fields ?? {} };
+        const wire: { kind: string; ref: string; fields: Record<string, string>; changed?: string; standing?: Standing; since?: string } = { kind: this.spec.kind, ref: t.name, fields: t.fields ?? {} };
         if (t.changed) wire.changed = stamp(t.changed);
+        if (t.standing) wire.standing = t.standing;
+        if (t.since) wire.since = stamp(t.since);
         return wire;
       });
       const out = await this.host.ask("thing/put", { things: batch }, signal);
