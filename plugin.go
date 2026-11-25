@@ -83,6 +83,7 @@ type Plugin struct {
 	refs        []*Ref
 	actions     []*Action
 	proposals   []*Proposal
+	notifies    []*NotifyKind
 	// accepting is held while a proposal's items are done: one at a time.
 	accepting sync.Mutex
 	setups    []func()
@@ -523,6 +524,9 @@ func (p *Plugin) prepare() (protocol.Registration, error) {
 	if _, err := p.proposalsDeclared(); err != nil {
 		p.declErrs = append(p.declErrs, err)
 	}
+	if _, err := p.notifiesDeclared(); err != nil {
+		p.declErrs = append(p.declErrs, err)
+	}
 	if len(p.declErrs) > 0 {
 		return protocol.Registration{}, errors.Join(p.declErrs...)
 	}
@@ -558,6 +562,7 @@ func (p *Plugin) registration() protocol.Registration {
 	reg.Refs, _ = p.refsDeclared()
 	reg.Actions, _ = p.actionsDeclared()
 	reg.Proposes, _ = p.proposalsDeclared()
+	reg.Notifies, _ = p.notifiesDeclared()
 	reg.Config = p.Config.spec()
 	return reg
 }

@@ -268,3 +268,33 @@ func ProposesProblem(list []Proposes) string {
 	}
 	return ""
 }
+
+// NotifiesProblem says what's wrong with a list of notification kinds as
+// registered, or "".
+func NotifiesProblem(list []Notifies) string {
+	seen := map[string]bool{}
+	for _, n := range list {
+		switch {
+		case !actionID.MatchString(n.ID):
+			return fmt.Sprintf("a kind of notification, %q, must be lower-case letters, digits and hyphens, starting with a letter", n.ID)
+		case seen[n.ID]:
+			return fmt.Sprintf("it notifies %q twice", n.ID)
+		case strings.TrimSpace(n.Title) == "":
+			return fmt.Sprintf("a kind of notification, %q, has no title: it's what Settings calls it", n.ID)
+		case n.Default != "" && n.Default != RouteFeed && n.Default != RouteOff:
+			return fmt.Sprintf("a kind of notification, %q, is sent to %q by default: it's feed or off (the desktop is the person's to choose)", n.ID, n.Default)
+		}
+		seen[n.ID] = true
+	}
+	return ""
+}
+
+// NotifiesKind is the kind registered by id, or ok false.
+func NotifiesKind(list []Notifies, id string) (Notifies, bool) {
+	for _, n := range list {
+		if n.ID == id {
+			return n, true
+		}
+	}
+	return Notifies{}, false
+}
