@@ -371,6 +371,44 @@ func (ws *WS) Shows(shown ...protocol.Shown) {
 	})
 }
 
+// Notices has the stand-in keep the notifications the plugin sends
+// (p.Notify), as ws does: one of a kind the plugin didn't register is
+// refused, and one with a key already sent isn't kept again. muted are
+// the kinds the person sends nowhere: kept, and answered Muted. It
+// returns what's kept, in the order it came.
+func (ws *WS) Notices(muted ...string) func() []protocol.NotificationAddParams {
+	var mu sync.Mutex
+	var kept []protocol.NotificationAddParams
+	ws.Answer(protocol.MethodNotificationAdd, func(params json.RawMessage) (any, error) {
+		var in protocol.NotificationAddParams
+		if err := json.Unmarshal(params, &in); err != nil {
+			return nil, &rpc.Error{Code: protocol.CodeInvalidParams, Message: err.Error()}
+		}
+		if _, ok := protocol.NotifiesKind(ws.Registration().Notifies, in.Kind); !ok {
+			return nil, &rpc.Error{Code: protocol.CodeInvalidParams, Message: "the plugin registered no kind of notification " + in.Kind}
+		}
+		if strings.TrimSpace(in.Text) == "" {
+			return nil, &rpc.Error{Code: protocol.CodeInvalidParams, Message: "it says nothing"}
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if in.Key != "" {
+			for i, k := range kept {
+				if k.Key == in.Key {
+					return protocol.NotificationAdded{N: int64(i + 1)}, nil
+				}
+			}
+		}
+		kept = append(kept, in)
+		return protocol.NotificationAdded{N: int64(len(kept)), Added: true, Muted: slices.Contains(muted, in.Kind)}, nil
+	})
+	return func() []protocol.NotificationAddParams {
+		mu.Lock()
+		defer mu.Unlock()
+		return append([]protocol.NotificationAddParams(nil), kept...)
+	}
+}
+
 // Conversations has the stand-in start the conversations the plugin
 // asks for (p.StartConversation), w1 then w2 and so on, and returns what
 // each was started with, in turn.

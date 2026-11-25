@@ -183,6 +183,7 @@ Every field is optional.
 - `refs` are how the plugin's things are named: [Refs](#refs).
 - `actions` are what the plugin can do when it's asked from Find, among what there is to do there: each an `id` (lower-case letters, digits and hyphens), a `title`, and an `icon` and a `hint` if it has them. ws runs one with [`action/run`](#actionrun-request). What can be done to one of its things is the thing's kind's (`refs[].actions`).
 - `proposes` are what a conversation's agent may propose of the plugin's, for the user to accept: [Proposals](#proposals).
+- `notifies` are the kinds of notification the plugin sends the person (`notification/add`), each `{ "id", "title", "about", "default" }`: `id` as an action's is written, `title` what Settings calls it, `about` a line on when it's sent, `default` where it's sent until the person says, `feed` (the default) or `off`. Each kind is listed in Settings › Notifications under the plugin's name, for the person to send to their feed, to the desktop as well, or nowhere. Added within version 1: a ws from before it lists none, and hasn't `notification/add`.
 
 Not built yet, and ignored if sent: `events`, `actions`.
 
@@ -745,6 +746,24 @@ Starts one of the workspace's conversations for the person using the plugin, wit
 - The message is sent as the person, and an agent answers it, so this is for something they asked for (a button they pressed), not for the plugin's own account. ws records which plugin started the conversation, and says so on it.
 
 An empty `message` is `-32602`.
+
+### `notification/add` (request)
+
+```json
+{ "kind": "assigned", "text": "Ana gave you RAM-123: Fix the login page", "refs": ["RAM-123"], "key": "h:10234:assignee:RAM-123" }
+```
+
+Tells the person of something that happened, in their feed of notifications: the one ws's own are in (a mission ended, a pull request merged). `kind` is one of the `notifies` the plugin registered; `text` says what happened, as a sentence; `refs` is what it's about as ws names things, the first what opening it goes to. `key` is the plugin's own name for what happened: one sent again with a key the plugin sent before isn't kept twice, so a plugin that sees the same change on two syncs needn't remember it told of it. `attention` marks one that went wrong; `at` is when it happened, if not now.
+
+```json
+{ "n": 12, "added": true }
+```
+
+- `n` is its number in the feed (`n12`): with `added` false, it was there already, and `n` is that one's.
+- `muted` is a kind the person sends nowhere: it's kept all the same, so it's there if they change their mind, but not shown.
+- Whether it reaches the desktop too is the person's to say, kind by kind. What the person did themselves isn't news to them: a plugin tells of what others did, and of what it did on its own account.
+
+A kind the plugin didn't register, or an empty `text`, is `-32602`. Added within version 1: a ws from before it hasn't the method (`-32601`).
 
 ### `remote/list` (request)
 
