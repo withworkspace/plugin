@@ -122,8 +122,8 @@ type Plugin struct {
 }
 
 // New is a plugin whose files (agents.md, migrations/, its app as built)
-// are in files: the plugin's folder, built into its executable with
-// go:embed. files may be nil for a plugin with none of them.
+// are in files: the plugin's folder, built into its executable (with
+// //go:embed). files may be nil for a plugin with none of them.
 func New(files fs.FS) *Plugin {
 	ctx, cancel := context.WithCancel(context.Background())
 	p := &Plugin{

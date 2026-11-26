@@ -572,7 +572,8 @@ func (ws *WS) Remotes(remotes ...protocol.RemoteOpened) func() []InRepo {
 		}
 		mu.Lock()
 		base := slugOf(given.Title)
-		slug, repo, folder := base, "records", ""
+		slug, repo := base, "records"
+		var folder string
 		for n := 2; ; n++ {
 			folder = strings.ReplaceAll(kind.Remote.Path, protocol.RemoteSlug, slug)
 			if to := strings.TrimSpace(in.To); to != "" {

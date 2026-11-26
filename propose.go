@@ -124,11 +124,10 @@ type Draft struct {
 	// mission), and Mission the mission's slug, if it's a mission's.
 	Conversation, Mission string
 
-	ctx     context.Context
-	input   json.RawMessage
-	title   string
-	items   []protocol.ProposalItem
-	refused string
+	ctx   context.Context
+	input json.RawMessage
+	title string
+	items []protocol.ProposalItem
 }
 
 // refusal is what Refuse returns, and Decode for input that doesn't
