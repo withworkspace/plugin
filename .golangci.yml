@@ -1,0 +1,51 @@
+version: "2"
+
+# `just lint` and CI run these on the framework and its example.
+#
+# errcheck: an error let go on purpose is `_ = … // why`.
+#
+# noctx: a command, request or query with no context to end it is marked
+# `//nolint:noctx // why`, where it outlives its caller on purpose or
+# something else bounds it.
+linters:
+  default: none
+  enable:
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - wastedassign
+    - rowserrcheck
+    - unconvert
+    - copyloopvar
+    - noctx
+    - errcheck
+  settings:
+    staticcheck:
+      # Bugs and simplifications; not style (ST) or quick fixes (QF).
+      checks: ["all", "-ST*", "-QF*"]
+    errcheck:
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
+        # Rolling back after a failure: the failure is the error to say.
+        - (*database/sql.Tx).Rollback
+        # Writing a response: a client that's gone has nothing to be told.
+        - (net/http.ResponseWriter).Write
+  exclusions:
+    presets: [std-error-handling, common-false-positives]
+    rules:
+      - path: _test\.go
+        linters: [errcheck, noctx]
+      # The test kit serves a test's requests in-process: nothing to end.
+      - path: plugintest/
+        linters: [noctx]
+      # Listening on a socket, or dialling one with a timeout: nothing for a
+      # context to end.
+      - linters: [noctx]
+        text: "net\\.(Listen|DialTimeout) must not be called"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

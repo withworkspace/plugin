@@ -1,0 +1,56 @@
+name: Go kit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# What just check, just test and just lint do: the framework, then the
+# example plugin, which is its own module on the framework as it is here.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - run: go vet ./...
+
+      - run: go vet ./...
+        working-directory: examples/hello
+
+      # .golangci.yml says which, and how an error or a context let go
+      # says why. Built with this repo's Go, which a release may be older than.
+      - name: Lint
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run ./...
+
+      - name: Lint the example
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run ./...
+        working-directory: examples/hello
+
+      # What the example's app is told of its endpoints is what its Go says.
+      - name: Check the example's app types are what its endpoints say
+        run: go tool apigen -check
+        working-directory: examples/hello
+
+      - run: go build ./...
+
+      - run: go test ./...
+
+      - run: go test ./...
+        working-directory: examples/hello
