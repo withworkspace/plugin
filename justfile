@@ -15,6 +15,14 @@ check:
     go build ./...
     cd examples/hello && go tool apigen -check
 
+golangci := "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0"
+
+# golangci-lint (.golangci.yml) on the framework and its example. Built
+# with this repo's Go, which a release may be older than.
+lint:
+    go run {{golangci}} run ./...
+    cd examples/hello && go run {{golangci}} run ./...
+
 # Write the example's ui/src/api.gen.ts again from its Go: what its
 # endpoints take and answer, for its app.
 api:

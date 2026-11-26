@@ -32,7 +32,7 @@ type Since struct {
 	Score  float64   `json:"score,omitempty"`
 	Paging
 	Hidden string `json:"-"`
-	note   string
+	note   string //nolint:unused // there to be left out of what the endpoint says
 }
 
 // Paging is part of a query, as its own fields.
