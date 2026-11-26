@@ -108,15 +108,17 @@ func (p *Plugin) openDB() (*sql.DB, error) {
 // (plugin.db.bak), and the copy kept until the next time there's
 // something to apply.
 func (p *Plugin) migrate(db *sql.DB, path string) error {
+	// A migration the plugin stops in is rolled back, as one that fails is.
+	ctx := p.ctx
 	names, err := p.migrations()
 	if err != nil {
 		return fmt.Errorf("reading migrations: %w", err)
 	}
-	if _, err := db.Exec(`create table if not exists _migrations (name text primary key, applied_at integer not null)`); err != nil {
+	if _, err := db.ExecContext(ctx, `create table if not exists _migrations (name text primary key, applied_at integer not null)`); err != nil {
 		return fmt.Errorf("opening %s: %w", dbFile, err)
 	}
 	applied := map[string]bool{}
-	rows, err := db.Query(`select name from _migrations`)
+	rows, err := db.QueryContext(ctx, `select name from _migrations`)
 	if err != nil {
 		return err
 	}
@@ -127,6 +129,12 @@ func (p *Plugin) migrate(db *sql.DB, path string) error {
 			return err
 		}
 		applied[name] = true
+	}
+	// Read short, applied would leave out migrations the database has, and
+	// they'd be applied again.
+	if err := rows.Err(); err != nil {
+		rows.Close() //nolint:errcheck // already failing
+		return err
 	}
 	if err := rows.Close(); err != nil {
 		return err
@@ -142,7 +150,7 @@ func (p *Plugin) migrate(db *sql.DB, path string) error {
 	}
 	if len(applied) > 0 {
 		// There's something to lose: keep a copy of it.
-		if _, err := db.Exec(`pragma wal_checkpoint(truncate)`); err != nil {
+		if _, err := db.ExecContext(ctx, `pragma wal_checkpoint(truncate)`); err != nil {
 			return fmt.Errorf("copying %s aside: %w", dbFile, err)
 		}
 		if err := copyFile(path, path+".bak"); err != nil {
@@ -154,15 +162,15 @@ func (p *Plugin) migrate(db *sql.DB, path string) error {
 		if err != nil {
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
-		if _, err := tx.Exec(string(script)); err != nil {
+		if _, err := tx.ExecContext(ctx, string(script)); err != nil {
 			tx.Rollback() //nolint:errcheck // already failing
 			return fmt.Errorf("migration %s couldn't be applied, so the plugin's database is as it was: %w", name, err)
 		}
-		if _, err := tx.Exec(`insert into _migrations (name, applied_at) values (?, ?)`, name, time.Now().Unix()); err != nil {
+		if _, err := tx.ExecContext(ctx, `insert into _migrations (name, applied_at) values (?, ?)`, name, time.Now().Unix()); err != nil {
 			tx.Rollback() //nolint:errcheck // already failing
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
