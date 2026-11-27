@@ -51,6 +51,51 @@ func (p *Plugin) Action(id, title string, fn func(a *Act) error) *Action {
 	return a
 }
 
+// Opening declares an action that goes to a path in the plugin's app, and
+// does nothing else: ws goes there at once, without asking the plugin.
+//
+//	p.Opening("new", "New issue", "/new").Beside().Keys("n")
+func (p *Plugin) Opening(id, title, path string) *Action {
+	p.declaring("Action")
+	a := &Action{act: protocol.Action{ID: id, Title: title, Opens: path}}
+	p.actions = append(p.actions, a)
+	return a
+}
+
+// Where a path in the plugin's app is opened: as the page, or beside the
+// page that's open.
+type Where = string
+
+const (
+	Page   Where = protocol.WherePage
+	Beside Where = protocol.WhereBeside
+)
+
+// Keys are keys the action suggests, never bound by ws: the person sees
+// them in Settings › Keyboard, with what they'd clash with, and takes
+// them or not. Name each as ws does: "n", "N", "mod+shift+i", "g i" (g,
+// then i).
+func (a *Action) Keys(keys ...string) *Action {
+	a.act.Keys = keys
+	return a
+}
+
+// On is the kinds of what's open the action is for: mission, pr,
+// conversation, document, artifact, file, repo, or a plugin's kind of
+// thing (jira:issue). Find offers it, and its keys do it, only there.
+// None is everywhere.
+func (a *Action) On(kinds ...string) *Action {
+	a.act.On = kinds
+	return a
+}
+
+// Beside has what the action opens (Opening, Act.Open) open beside the
+// page that's open, not as the page.
+func (a *Action) Beside() *Action {
+	a.act.Where = Beside
+	return a
+}
+
 // Icon is the action's icon in Find: one of ws's icon names.
 func (a *Action) Icon(name string) *Action {
 	a.act.Icon = name
@@ -69,6 +114,9 @@ type Act struct {
 	// plugin's own.
 	Name string
 
+	here  *protocol.Here
+	where Where
+
 	ctx     context.Context
 	answers []string
 	asked   int
@@ -78,6 +126,14 @@ type Act struct {
 // errAsking is what Pick and Ask return when what they ask hasn't been
 // answered yet: the action returns it, and Find asks.
 var errAsking = errors.New("the action is asking")
+
+// Here is what was open when the action was asked for: a mission, a pull
+// request, one of a plugin's things. It's nil where nothing was (a list),
+// or where ws didn't say.
+type Here = protocol.Here
+
+// Here is what was open when the action was asked for, if anything was.
+func (a *Act) Here() *Here { return a.here }
 
 // Context ends when whoever chose the action gives up on it.
 func (a *Act) Context() context.Context { return a.ctx }
@@ -122,15 +178,22 @@ func (a *Act) Say(text string) error {
 	return nil
 }
 
-// Open is where to go once it's done: a path in the plugin's app.
-func (a *Act) Open(path string) { a.out.Open = path }
+// Open is where to go once it's done: a path in the plugin's app, opened
+// as the page, unless where says (Beside), or the action does (Action.Beside).
+func (a *Act) Open(path string, where ...Where) {
+	a.out.Open = path
+	a.out.Where = a.where
+	if len(where) > 0 {
+		a.out.Where = where[0]
+	}
+}
 
 // actionsDeclared are the plugin's own actions as ws is told them, and
 // what's wrong with them.
 func (p *Plugin) actionsDeclared() ([]protocol.Action, error) {
 	var out []protocol.Action
 	for _, a := range p.actions {
-		if a.fn == nil {
+		if a.fn == nil && a.act.Opens == "" {
 			return nil, fmt.Errorf("the action %q has nothing that does it", a.act.ID)
 		}
 		out = append(out, a.act)
@@ -145,10 +208,20 @@ func (p *Plugin) actionsDeclared() ([]protocol.Action, error) {
 // kind's on one of its things.
 func (p *Plugin) runAction(ctx context.Context, in protocol.ActionRunParams) (any, error) {
 	var fn func(*Act) error
+	var where Where
 	if in.Kind == "" {
 		for _, a := range p.actions {
 			if a.act.ID == in.ID {
-				fn = a.fn
+				fn, where = a.fn, a.act.Where
+				// One that only opens is run as one that opens: ws goes
+				// there itself, but one that asks is answered the same.
+				if fn == nil && a.act.Opens != "" {
+					opens := a.act.Opens
+					fn = func(act *Act) error {
+						act.Open(opens)
+						return nil
+					}
+				}
 			}
 		}
 	} else {
@@ -166,7 +239,7 @@ func (p *Plugin) runAction(ctx context.Context, in protocol.ActionRunParams) (an
 	}
 	ctx, cancel := context.WithTimeout(ctx, p.CommandTimeout)
 	defer cancel()
-	act := &Act{Name: in.Ref, ctx: ctx, answers: in.Answers}
+	act := &Act{Name: in.Ref, ctx: ctx, answers: in.Answers, here: in.Here, where: where}
 	err := p.recovering("the action "+in.ID, func() error { return fn(act) })
 	switch {
 	case errors.Is(err, errAsking) && act.out.Ask != nil:

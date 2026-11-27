@@ -818,6 +818,12 @@ func (ws *WS) ActOn(kind, name, id string, answers ...string) (protocol.ActionRu
 	return ws.act(protocol.ActionRunParams{ID: id, Kind: kind, Ref: name, Answers: answers})
 }
 
+// ActHere runs one of the plugin's own actions as ws does when it's asked
+// for with something open (here): a mission, one of a plugin's things.
+func (ws *WS) ActHere(here protocol.Here, id string, answers ...string) (protocol.ActionRunResult, error) {
+	return ws.act(protocol.ActionRunParams{ID: id, Answers: answers, Here: &here})
+}
+
 func (ws *WS) act(in protocol.ActionRunParams) (protocol.ActionRunResult, error) {
 	if in.Answers == nil {
 		in.Answers = []string{}
