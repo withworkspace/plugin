@@ -94,6 +94,16 @@ func (r *Proposal) When(text string) *Proposal {
 	return r
 }
 
+// Unattended says one may be accepted with nobody looking at it: by an
+// automation the user has let do it, as it runs on what happens. Say it
+// only of what's safe done so (a comment on an issue), not of what sets
+// off something no one would see (another system's own rules on a
+// move). Without it, an automation only ever proposes one.
+func (r *Proposal) Unattended() *Proposal {
+	r.decl.Unattended = true
+	return r
+}
+
 // Guide is how one's written, as it is now (the projects there are, the
 // fields each asks for): what the agent's shown when it asks, before it
 // writes one. Say the JSON it's written in, with an example.

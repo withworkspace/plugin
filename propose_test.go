@@ -71,6 +71,9 @@ func TestProposesDraftsAndAccepts(t *testing.T) {
 	if len(reg.Proposes) != 1 || reg.Proposes[0].ID != "issues" || reg.Proposes[0].When != "Issues to create." {
 		t.Fatalf("registered: %+v", reg.Proposes)
 	}
+	if reg.Proposes[0].Unattended {
+		t.Error("it's said to be safe unattended, and wasn't told so")
+	}
 
 	guide, err := ws.Guide("issues")
 	if err != nil || !strings.Contains(guide, "JSON list") {
@@ -141,5 +144,22 @@ func TestProposesNeedsAllItsParts(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "Guide") {
 		t.Errorf("one without a guide: %v", err)
+	}
+}
+
+// A kind said to be safe unattended is registered so: what ws lets an
+// automation accept with nobody looking.
+func TestProposesUnattended(t *testing.T) {
+	var made []string
+	ws := plugintest.New(t, nil, func(p *plugin.Plugin) {
+		issueProposals(&made)(p)
+		p.Proposes("comments", "Comments").Unattended().
+			Guide(func(context.Context) (string, error) { return "a JSON list of comments", nil }).
+			Draft(func(d *plugin.Draft) error { d.Item("a comment", nil); return nil }).
+			Accept(func(a *plugin.Accepting) error { return nil })
+	})
+	reg := ws.Registration()
+	if len(reg.Proposes) != 2 || reg.Proposes[0].Unattended || !reg.Proposes[1].Unattended {
+		t.Errorf("registered: %+v", reg.Proposes)
 	}
 }
