@@ -1581,6 +1581,66 @@ func TestWS(t *testing.T) {
 // A plugin's actions are run from Find: its own, and what's done to one
 // of its things. One that asks is run again with what's answered, from
 // the start, and does nothing until it's asked all it wants.
+func TestActionsKeysWhereAndHere(t *testing.T) {
+	var asked []*plugin.Here
+	ws := plugintest.New(t, nil, func(p *plugin.Plugin) {
+		p.Opening("new", "New issue", "/new").Beside().Keys("n").On("mission", "jira:issue")
+		p.Action("note", "Note on Jira", func(a *plugin.Act) error {
+			asked = append(asked, a.Here())
+			if h := a.Here(); h != nil {
+				a.Open("/new?about=" + h.Ref)
+				return nil
+			}
+			a.Open("/new", plugin.Beside)
+			return nil
+		}).Beside()
+		p.Action("board", "Board", func(a *plugin.Act) error {
+			a.Open("/board")
+			return nil
+		})
+	})
+
+	got, _ := json.Marshal(ws.Registration().Actions)
+	if string(got) != `[{"id":"new","title":"New issue","keys":["n"],"opens":"/new","where":"beside","on":["mission","jira:issue"]},{"id":"note","title":"Note on Jira","where":"beside"},{"id":"board","title":"Board"}]` {
+		t.Errorf("as declared: %s", got)
+	}
+
+	// One that only opens is run as one that opens, where it says.
+	if r, err := ws.Act("new"); err != nil || r.Open != "/new" || r.Where != plugin.Beside {
+		t.Errorf("opening: %+v, %v", r, err)
+	}
+	// What was open is told; where it opens is the action's unless the
+	// run says.
+	if r, err := ws.ActHere(protocol.Here{Ref: "fix-it", Kind: "mission", Title: "Fix it"}, "note"); err != nil || r.Open != "/new?about=fix-it" || r.Where != plugin.Beside {
+		t.Errorf("here: %+v, %v", r, err)
+	}
+	if r, err := ws.Act("note"); err != nil || r.Open != "/new" || r.Where != plugin.Beside {
+		t.Errorf("nothing open: %+v, %v", r, err)
+	}
+	if len(asked) != 2 || asked[0] == nil || asked[0].Title != "Fix it" || asked[1] != nil {
+		t.Errorf("told: %+v", asked)
+	}
+	if r, err := ws.Act("board"); err != nil || r.Open != "/board" || r.Where != "" {
+		t.Errorf("the page: %+v, %v", r, err)
+	}
+}
+
+func TestActionsDeclaredWrong(t *testing.T) {
+	for name, bad := range map[string]protocol.Action{
+		"opens no path":  {ID: "a", Title: "A", Opens: "new"},
+		"nowhere":        {ID: "a", Title: "A", Where: "over"},
+		"on a bad kind":  {ID: "a", Title: "A", On: []string{"Jira Issue"}},
+		"a key, spaced ": {ID: "a", Title: "A", Keys: []string{" n"}},
+	} {
+		if protocol.ActionsProblem([]protocol.Action{bad}) == "" {
+			t.Errorf("%s: allowed", name)
+		}
+	}
+	if p := protocol.ActionsProblem([]protocol.Action{{ID: "a", Title: "A", Opens: "/new", Where: "beside", On: []string{"pr", "jira:issue"}, Keys: []string{"g i"}}}); p != "" {
+		t.Errorf("a good one: %s", p)
+	}
+}
+
 func TestActionsAskAndThenDo(t *testing.T) {
 	var moved, made []string
 	ws := plugintest.New(t, nil, func(p *plugin.Plugin) {

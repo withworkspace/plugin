@@ -202,6 +202,10 @@ var actionID = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
 
 // ActionsProblem says what's wrong with a list of actions as registered,
 // or "".
+// onKind is a kind an action is on: ws's own (mission) or a plugin's
+// (jira:issue).
+var onKind = regexp.MustCompile(`^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)?$`)
+
 func ActionsProblem(actions []Action) string {
 	seen := map[string]bool{}
 	for _, a := range actions {
@@ -212,6 +216,20 @@ func ActionsProblem(actions []Action) string {
 			return fmt.Sprintf("its action %q is there twice", a.ID)
 		case strings.TrimSpace(a.Title) == "":
 			return fmt.Sprintf("its action %q has no title: it's what Find calls it", a.ID)
+		case a.Opens != "" && !strings.HasPrefix(a.Opens, "/"):
+			return fmt.Sprintf("its action %q opens %q: a path in its app starts with /", a.ID, a.Opens)
+		case a.Where != "" && a.Where != WherePage && a.Where != WhereBeside:
+			return fmt.Sprintf("its action %q opens %q: where is %q or %q", a.ID, a.Where, WherePage, WhereBeside)
+		}
+		for _, k := range a.On {
+			if !onKind.MatchString(k) {
+				return fmt.Sprintf("its action %q is on %q: a kind is lower-case letters, digits and hyphens (mission), or a plugin's and its kind (jira:issue)", a.ID, k)
+			}
+		}
+		for _, k := range a.Keys {
+			if k == "" || strings.TrimSpace(k) != k || strings.Contains(k, "  ") {
+				return fmt.Sprintf("its action %q suggests the key %q: a key is named as ws names one (\"n\", \"g i\")", a.ID, k)
+			}
 		}
 		seen[a.ID] = true
 	}
