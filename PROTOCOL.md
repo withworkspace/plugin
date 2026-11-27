@@ -454,7 +454,7 @@ An action chosen in Find: one of the plugin's own, or one of a kind's on one of 
 
 - `id` is the action's. `kind` and `ref` are there for a kind's action, the thing it's done to; neither for one of the plugin's own. ws runs only what's registered, and a kind's only by a name that's the kind's.
 - `answers` are what's been answered so far to what the action asked, in order.
-- `here`, added within version 1, is what was open when the action was asked for, if anything was: its `ref` (a mission's slug, `jira:RAM-12`), its `kind` (as `on` names kinds), its `title`, and the words picked out in it (`selection`), if any.
+- `here`, added within version 1, is what was open when the action was asked for, if anything was: its `ref` (a mission's slug, a Jira issue's `RAM-12`), its `kind` (as `on` names kinds), its `title`, and the words picked out in it (`selection`), if any.
 
 An action that needs something first asks for it, and does nothing yet:
 
