@@ -147,8 +147,8 @@ func TestProposesNeedsAllItsParts(t *testing.T) {
 	}
 }
 
-// A kind said to be safe unattended is registered so: what ws lets an
-// automation accept with nobody looking.
+// A kind vouched for unattended is registered so, and one with a caution
+// says why it might not be: advice to the user granting it.
 func TestProposesUnattended(t *testing.T) {
 	var made []string
 	ws := plugintest.New(t, nil, func(p *plugin.Plugin) {
@@ -161,5 +161,14 @@ func TestProposesUnattended(t *testing.T) {
 	reg := ws.Registration()
 	if len(reg.Proposes) != 2 || reg.Proposes[0].Unattended || !reg.Proposes[1].Unattended {
 		t.Errorf("registered: %+v", reg.Proposes)
+	}
+	moves := plugintest.New(t, nil, func(p *plugin.Plugin) {
+		p.Proposes("moves", "Moves").Caution(" A move may set off the board's own rules. ").
+			Guide(func(context.Context) (string, error) { return "a JSON list", nil }).
+			Draft(func(d *plugin.Draft) error { d.Item("a move", nil); return nil }).
+			Accept(func(a *plugin.Accepting) error { return nil })
+	})
+	if m := moves.Registration().Proposes[0]; m.Unattended || m.Caution != "A move may set off the board's own rules." {
+		t.Errorf("registered: %+v", m)
 	}
 }

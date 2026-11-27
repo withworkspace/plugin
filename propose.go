@@ -94,13 +94,21 @@ func (r *Proposal) When(text string) *Proposal {
 	return r
 }
 
-// Unattended says one may be accepted with nobody looking at it: by an
-// automation the user has let do it, as it runs on what happens. Say it
-// only of what's safe done so (a comment on an issue), not of what sets
-// off something no one would see (another system's own rules on a
-// move). Without it, an automation only ever proposes one.
+// Unattended vouches that one is safe accepted with nobody looking at it:
+// by an automation as it runs on what happens (a comment on an issue).
+// Whether an automation does is the user's to say, kind by kind: this is
+// advice to them, shown as they decide.
 func (r *Proposal) Unattended() *Proposal {
 	r.decl.Unattended = true
+	return r
+}
+
+// Caution is why one might not be safe accepted with nobody looking, in a
+// sentence for the user deciding whether to let an automation do it
+// without asking: "A move may set off the board's own rules, which nobody
+// sees happen." It's shown as they grant it.
+func (r *Proposal) Caution(why string) *Proposal {
+	r.decl.Caution = strings.TrimSpace(why)
 	return r
 }
 
