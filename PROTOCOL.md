@@ -181,7 +181,7 @@ Every field is optional.
 - A `map` is text by text (`columns = { "In Review" = "Review" }`). A `table` is named rows, each holding the key's `fields`: [Config in tables](#config-in-tables).
 - `syncs` is for show (`ws plugin list`); ws doesn't run them. `every` is seconds between runs, `0` for a sync with no interval of its own. `open`, where it's there, is seconds between runs while the plugin's app is on screen ([`view/looking`](#viewlooking-notification)).
 - `refs` are how the plugin's things are named: [Refs](#refs).
-- `actions` are what the plugin can do when it's asked from Find, among what there is to do there: each an `id` (lower-case letters, digits and hyphens), a `title`, and an `icon` and a `hint` if it has them. ws runs one with [`action/run`](#actionrun-request). What can be done to one of its things is the thing's kind's (`refs[].actions`).
+- `actions` are what the plugin can do when it's asked from Find, among what there is to do there: each an `id` (lower-case letters, digits and hyphens), a `title`, and an `icon` and a `hint` if it has them. Added within version 1, each may also say: `keys`, keys it suggests (named as ws names a press: `"n"`, `"g i"`), which ws binds only under the plugin key the person chose (`, n`), never by themselves; `opens`, a path in its app it goes to with nothing to run (ws goes there without asking the plugin); `where` it opens, `page` (unless said) or `beside` the page that's open; and `on`, the kinds of what's open it's for (`mission`, `pr`, `conversation`, `document`, `artifact`, `file`, `repo`, or a plugin's `jira:issue`), offered and done by its keys only there. ws runs one with [`action/run`](#actionrun-request). What can be done to one of its things is the thing's kind's (`refs[].actions`).
 - `proposes` are what a conversation's agent may propose of the plugin's, for the user to accept: [Proposals](#proposals).
 - `notifies` are the kinds of notification the plugin sends the person (`notification/add`), each `{ "id", "title", "about", "default" }`: `id` as an action's is written, `title` what Settings calls it, `about` a line on when it's sent, `default` where it's sent until the person says, `feed` (the default) or `off`. Each kind is listed in Settings › Notifications under the plugin's name, for the person to send to their feed, to the desktop as well, or nowhere. Added within version 1: a ws from before it lists none, and hasn't `notification/add`.
 
@@ -454,6 +454,7 @@ An action chosen in Find: one of the plugin's own, or one of a kind's on one of 
 
 - `id` is the action's. `kind` and `ref` are there for a kind's action, the thing it's done to; neither for one of the plugin's own. ws runs only what's registered, and a kind's only by a name that's the kind's.
 - `answers` are what's been answered so far to what the action asked, in order.
+- `here`, added within version 1, is what was open when the action was asked for, if anything was: its `ref` (a mission's slug, `jira:RAM-12`), its `kind` (as `on` names kinds), its `title`, and the words picked out in it (`selection`), if any.
 
 An action that needs something first asks for it, and does nothing yet:
 
@@ -472,7 +473,7 @@ Done, it says what came of it. Both are optional:
 ```
 
 - `say` is a line for whoever chose it.
-- `open` is a path in the plugin's app, which ws goes to.
+- `open` is a path in the plugin's app, which ws goes to: as the page, or beside the page that's open with `"where": "beside"` (added within version 1). Where the app's open already, it's told to go there rather than opened again.
 
 A plugin that changes one of its things tells ws of it as it now is ([`thing/put`](#thingput-request)). An action that fails is an error, whose message is said. ws gives a plugin two minutes.
 
