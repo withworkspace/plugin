@@ -94,6 +94,24 @@ func (r *Proposal) When(text string) *Proposal {
 	return r
 }
 
+// Unattended vouches that one is safe accepted with nobody looking at it:
+// by an automation as it runs on what happens (a comment on an issue).
+// Whether an automation does is the user's to say, kind by kind: this is
+// advice to them, shown as they decide.
+func (r *Proposal) Unattended() *Proposal {
+	r.decl.Unattended = true
+	return r
+}
+
+// Caution is why one might not be safe accepted with nobody looking, in a
+// sentence for the user deciding whether to let an automation do it
+// without asking: "A move may set off the board's own rules, which nobody
+// sees happen." It's shown as they grant it.
+func (r *Proposal) Caution(why string) *Proposal {
+	r.decl.Caution = strings.TrimSpace(why)
+	return r
+}
+
 // Guide is how one's written, as it is now (the projects there are, the
 // fields each asks for): what the agent's shown when it asks, before it
 // writes one. Say the JSON it's written in, with an example.
