@@ -71,10 +71,10 @@ const (
 	Beside Where = protocol.WhereBeside
 )
 
-// Keys are keys the action suggests: ws binds them under the plugin key
-// the person chose, if they chose one (with "," as theirs, Keys("n") is ,
-// then n), and never by themselves. Name each as ws does: "n", "N",
-// "mod+shift+i", "g i" (g, then i).
+// Keys are keys the action suggests, never bound by ws: the person sees
+// them in Settings › Keyboard, with what they'd clash with, and takes
+// them or not. Name each as ws does: "n", "N", "mod+shift+i", "g i" (g,
+// then i).
 func (a *Action) Keys(keys ...string) *Action {
 	a.act.Keys = keys
 	return a
